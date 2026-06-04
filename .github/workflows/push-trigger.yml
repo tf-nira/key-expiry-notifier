@@ -1,5 +1,4 @@
 name: Maven Package upon a push
-
 on:
   release:
     types: [published]
@@ -16,17 +15,17 @@ on:
     branches:
       - '!releas-branch'
       - release*
-      - master
+      - main
       - 1.*
       - develop
       - MOSIP*
 
 jobs:
-  build-maven-manual-verification-service:
-    uses: tf-nira/manual-verification-service/.github/workflows/maven-build.yml@master
+  build-maven-key-expiry-notifier:
+    uses: tf-nira/key-expiry-notifier/.github/workflows/maven-build.yml@main
     with:
       SERVICE_LOCATION: .
-      BUILD_ARTIFACT: manual-verification-service
+      BUILD_ARTIFACT: key-expiry-notifier
     secrets:
       OSSRH_USER: ${{ secrets.OSSRH_USER }}
       OSSRH_SECRET: ${{ secrets.OSSRH_SECRET }}
@@ -35,8 +34,8 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
   publish_to_nexus:
-    if: "${{ !contains(github.ref, 'master') && github.event_name != 'pull_request' && github.event_name != 'release' && github.event_name != 'prerelease' && github.event_name != 'publish' }}"
-    needs: build-maven-manual-verification-service
+    if: "${{ !contains(github.ref, 'main') && github.event_name != 'pull_request' && github.event_name != 'release' && github.event_name != 'prerelease' && github.event_name != 'publish' }}"
+    needs: build-maven-key-expiry-notifier
     uses: mosip/kattu/.github/workflows/maven-publish-to-nexus.yml@master
     with:
       SERVICE_LOCATION: .
@@ -49,16 +48,16 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
   build-dockers:
-    needs: build-maven-manual-verification-service
+    needs: build-maven-key-expiry-notifier
     strategy:
       matrix:
         include:
           - SERVICE_LOCATION: .
-            SERVICE_NAME: manual-verification-service
-            BUILD_ARTIFACT: manual-verification-service
+            SERVICE_NAME: key-expiry-notifier
+            BUILD_ARTIFACT: key-expiry-notifier
       fail-fast: false
     name: ${{ matrix.SERVICE_NAME }}
-    uses: tf-nira/manual-verification-service/.github/workflows/docker-build.yml@master
+    uses: tf-nira/key-expiry-notifier/.github/workflows/docker-build.yml@main
     with:
       SERVICE_LOCATION: ${{ matrix.SERVICE_LOCATION }}
       SERVICE_NAME: ${{ matrix.SERVICE_NAME }}
@@ -70,8 +69,8 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
   sonar_analysis:
-    needs: build-maven-manual-verification-service
-    if: "${{  github.event_name != 'pull_request' }}"
+    needs: build-maven-key-expiry-notifier
+    if: "${{ github.event_name != 'pull_request' }}"
     uses: mosip/kattu/.github/workflows/maven-sonar-analysis.yml@master
     with:
       SERVICE_LOCATION: .
