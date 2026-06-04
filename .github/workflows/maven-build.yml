@@ -1,4 +1,4 @@
-name: Maven build
+name: Maven build for key-expiry-notifier
 
 on:
   workflow_call:
@@ -34,8 +34,8 @@ jobs:
       with:
         distribution: adopt
         java-version: 11
-        server-id: ossrh # Value of the distributionManagement/repository/id field of the pom.xml
-        settings-path: ${{ github.workspace }} # location for the settings.xml file
+        server-id: ossrh
+        settings-path: ${{ github.workspace }}
 
     - name: Cache local Maven repository
       uses: actions/cache@v3
@@ -47,13 +47,11 @@ jobs:
 
     - name: Setup branch and env
       run: |
-        # Strip git ref prefix from version
         echo "BRANCH_NAME=$(echo ${{ github.ref }} | sed -e 's,.*/\(.*\),\1,')" >> $GITHUB_ENV
         echo "GPG_TTY=$(tty)" >> $GITHUB_ENV  
 
     - name: Setup branch and GPG public key
       run: |
-        # Strip git ref prefix from version
         echo ${{ env.BRANCH_NAME }}
         echo ${{ env.GPG_TTY }}
         sudo apt-get --yes install gnupg2
@@ -107,8 +105,7 @@ jobs:
     - name: Ready the springboot executable artifacts
       if: ${{ !contains(github.ref, 'master') || !contains(github.ref, 'main') }}
       run: |
-        ## FIND JARS & COPY ONLY EXECUTABLE JARs STORED UNDER TARGET DIRECTORY 
-        find ${{ inputs.SERVICE_LOCATION }} -path '*/target/*' -name '*.jar'  -type f  -executable -exec zip ${{ inputs.BUILD_ARTIFACT }}.zip {} +
+        find ${{ inputs.SERVICE_LOCATION }} -path '*/target/*' -name '*.jar' -type f -executable -exec zip ${{ inputs.BUILD_ARTIFACT }}.zip {} +
 
     - name: Ready the springboot non-executable artifacts
       if: ${{ inputs.MAVEN_NON_EXEC_ARTIFACTS }}
@@ -134,7 +131,7 @@ jobs:
     - uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
-        fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
+        fields: repo,message,author,commit,workflow,job
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
-      if: "${{ github.event_name != 'pull_request' && failure() }}" # Pick up events even if the job fails or is canceled.
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: "${{ github.event_name != 'pull_request' && failure() }}"
