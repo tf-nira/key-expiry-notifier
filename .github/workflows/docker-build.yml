@@ -1,4 +1,4 @@
-name: Build docker and push image to Docker Hub
+name: Build docker and push image to Docker Hub for key-expiry-notifier
 
 on:
   workflow_call:
@@ -50,7 +50,6 @@ jobs:
 
       - name: Setup branch and env
         run: |
-          # Strip git ref prefix from version
           echo "BRANCH_NAME=$(echo ${{ github.ref }} | sed -e 's,.*/\(.*\),\1,')" >> $GITHUB_ENV
           echo "GPG_TTY=$(tty)" >> $GITHUB_ENV
           echo "${{ toJSON(inputs) }}"
@@ -73,7 +72,7 @@ jobs:
           fi      
 
       - name: Get version info from pom
-        if: ${{ contains(inputs.NPM_BUILD, 'false') && ( inputs.BUILD_ARTIFACT != 'false' )  && ( inputs.ONLY_DOCKER == false ) }}
+        if: ${{ contains(inputs.NPM_BUILD, 'false') && ( inputs.BUILD_ARTIFACT != 'false' ) && ( inputs.ONLY_DOCKER == false ) }}
         id: getPomVersion
         uses: mavrosxristoforos/get-xml-info@1.1.1
         with:
@@ -81,7 +80,7 @@ jobs:
           xpath: /*[local-name()="project"]/*[local-name()="version"]
 
       - name: Unzip and extract for docker build
-        if: ${{ contains(inputs.NPM_BUILD, 'false' ) && ( inputs.BUILD_ARTIFACT != 'false' )  && ( inputs.ONLY_DOCKER == true )}}
+        if: ${{ contains(inputs.NPM_BUILD, 'false' ) && ( inputs.BUILD_ARTIFACT != 'false' ) && ( inputs.ONLY_DOCKER == true )}}
         run: |
           unzip "${{ inputs.BUILD_ARTIFACT }}.zip" -d "${{ inputs.SERVICE_LOCATION }}"
 
@@ -91,17 +90,17 @@ jobs:
           unzip -uj "${{ inputs.BUILD_ARTIFACT }}.zip" "target/*" -d "${{ env.SERVICE_LOCATION }}/target/"
 
       - name: Unzip and extract for npm
-        if: ${{ contains(inputs.NPM_BUILD, 'true' ) && ( inputs.BUILD_ARTIFACT != false )  && ( inputs.ONLY_DOCKER == false )}}
+        if: ${{ contains(inputs.NPM_BUILD, 'true' ) && ( inputs.BUILD_ARTIFACT != false ) && ( inputs.ONLY_DOCKER == false )}}
         run: |
           unzip "${{ inputs.BUILD_ARTIFACT }}.zip" "dist/*" -d "${{ inputs.SERVICE_LOCATION }}"
 
       - name: Get current date
-        run: echo "BUILD_TIME=$(date +'%Y-%m-%d-%H-%M-%S')"  >> $GITHUB_ENV
+        run: echo "BUILD_TIME=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV
 
       - name: Build check for Docker label
         run: |
           cd ${{ inputs.SERVICE_LOCATION }}
-          for layer in  ARG\\s+SOURCE ARG\\s+COMMIT_HASH ARG\\s+COMMIT_ID ARG\\s+BUILD_TIME LABEL\\s+source=\\$\\{SOURCE\\} LABEL\\s+commit_hash=\\$\\{COMMIT_HASH\\} LABEL\\s+commit_id=\\$\\{COMMIT_ID\\} LABEL\\s+build_time=\\$\\{BUILD_TIME\\}; do
+          for layer in ARG\\s+SOURCE ARG\\s+COMMIT_HASH ARG\\s+COMMIT_ID ARG\\s+BUILD_TIME LABEL\\s+source=\\$\\{SOURCE\\} LABEL\\s+commit_hash=\\$\\{COMMIT_HASH\\} LABEL\\s+commit_id=\\$\\{COMMIT_ID\\} LABEL\\s+build_time=\\$\\{BUILD_TIME\\}; do
             layer_count=$( grep -Ev '^$' Dockerfile | grep -Ec "$layer" || true);
           
             if [[ $layer_count -ne 1 ]]; then
@@ -124,14 +123,12 @@ jobs:
         if: "${{ github.event_name != 'pull_request' }}"
         run: |
           IMAGE_ID=$NAMESPACE/$SERVICE_NAME
-          
-          # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
           echo "push version ${{steps.getPomVersion.outputs.info}}"
           if [[ $BRANCH_NAME == master ]]; then
-          VERSION=latest
+            VERSION=latest
           else
-          VERSION=$BRANCH_NAME
+            VERSION=$BRANCH_NAME
           fi
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
@@ -141,7 +138,7 @@ jobs:
       - uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          fields: repo,message,author,commit,workflow,job # selectable (default: repo,message)
+          fields: repo,message,author,commit,workflow,job
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
-        if: "${{ github.event_name != 'pull_request' && failure() }}" # Pick up events even if the job fails or is canceled.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: "${{ github.event_name != 'pull_request' && failure() }}"
