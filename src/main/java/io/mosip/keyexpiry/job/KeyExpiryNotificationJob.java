@@ -1,6 +1,7 @@
 package io.mosip.keyexpiry.job;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -72,8 +73,9 @@ public class KeyExpiryNotificationJob {
     }
 
     private void processNotification(String sessionId) {
+    	LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         LocalDateTime expiryThreshold = LocalDateTime.now().plusDays(daysThreshold);
-        List<KeyAlias> expiringKeys = keyAliasRepository.findExpiringKeys(expiryThreshold);
+        List<KeyAlias> expiringKeys = keyAliasRepository.findExpiringKeys(expiryThreshold, now);
 
         LOGGER.info("[{}] [{}] Found {} keys expiring within {} days",
                 sessionId, JOB_NAME, expiringKeys.size(), daysThreshold);
