@@ -3,6 +3,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -75,17 +76,29 @@ public class KeyExpiryNotificationJob {
     private void processNotification(String sessionId) {
     	LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         LocalDateTime expiryThreshold = LocalDateTime.now().plusDays(daysThreshold);
-        List<KeyAlias> expiringKeys = keyAliasRepository.findExpiringKeys(expiryThreshold, now);
+        
+        int pageSize = 500;
+        int offset = 0;
+        
+        List<KeyAlias> allExpiringKeys = new ArrayList<>();
+        List<KeyAlias> batch;
+        do {
+        	batch = keyAliasRepository.findExpiringKeys(expiryThreshold, now, pageSize, offset);
+        	allExpiringKeys.addAll(batch);
+        	offset += pageSize;
+        } while (batch.size() == pageSize);
+        
+        //List<KeyAlias> expiringKeys = keyAliasRepository.findExpiringKeys(expiryThreshold, now);
 
         LOGGER.info("[{}] [{}] Found {} keys expiring within {} days",
-                sessionId, JOB_NAME, expiringKeys.size(), daysThreshold);
+                sessionId, JOB_NAME, allExpiringKeys.size(), daysThreshold);
 
-        if (expiringKeys.isEmpty()) {
+        if (allExpiringKeys.isEmpty()) {
             LOGGER.info("[{}] [{}] No expiring keys found. Job will exit.", sessionId, JOB_NAME);
             return;
         }
 
-        String emailBody = buildEmailBody(expiringKeys);
+        String emailBody = buildEmailBody(allExpiringKeys);
 
         for (String recipient : recipients.split(",")) {
             String trimmed = recipient.trim();

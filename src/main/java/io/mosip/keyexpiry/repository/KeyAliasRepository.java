@@ -10,25 +10,26 @@ import org.springframework.data.repository.query.Param;
 import io.mosip.keyexpiry.entity.KeyAlias;
 
 public interface KeyAliasRepository extends JpaRepository<KeyAlias, String>{
-	@Query("SELECT k FROM KeyAlias k " +
-	           "WHERE k.keyExpireDtimes <= :threshold " +
-	           "AND (k.isDeleted IS NULL OR k.isDeleted = false) " +
-	           // Only keep the latest record per (appId, referenceId) group
-	           "AND k.keyExpireDtimes = (" +
-	           "    SELECT MAX(k2.keyExpireDtimes) FROM KeyAlias k2 " +
-	           "    WHERE k2.appId = k.appId " +
-	           "    AND k2.refId = k.refId " +
-	           "    AND (k2.isDeleted IS NULL OR k2.isDeleted = false) " +
-	           ") " +
-	           // Exclude groups where a valid (non-expired) key exists
-	           "AND NOT EXISTS (" +
-	           "    SELECT 1 FROM KeyAlias k3 " +
-	           "    WHERE k3.appId = k.appId " +
-	           "    AND k3.refId = k.refId " +
-	           "    AND (k3.isDeleted IS NULL OR k3.isDeleted = false) " +
-	           "    AND k3.keyExpireDtimes > :now " +
-	           ") " +
-	           "ORDER BY k.keyExpireDtimes ASC")
-	List<KeyAlias> findExpiringKeys(@Param("threshold") LocalDateTime thresold, @Param("now") LocalDateTime now);
+	@Query(value =
+		    "WITH ranked_keys AS ( " +
+		    "    SELECT *, " +
+		    "           ROW_NUMBER() OVER ( " +
+		    "               PARTITION BY app_id, ref_id " +
+		    "               ORDER BY key_expire_dtimes DESC " +
+		    "           ) AS rn, " +
+		    "           MAX(CASE WHEN key_expire_dtimes > :now THEN 1 ELSE 0 END) " +
+		    "               OVER (PARTITION BY app_id, ref_id) AS has_valid_key " +
+		    "    FROM keymgr.key_alias " +
+		    "    WHERE (is_deleted IS NULL OR is_deleted = false) " +
+		    ") " +
+		    "SELECT * FROM ranked_keys " +
+		    "WHERE rn = 1 " +
+		    "  AND has_valid_key = 0 " +
+		    "  AND key_expire_dtimes <= :threshold " +
+		    "ORDER BY key_expire_dtimes ASC " +
+		    "LIMIT :pageSize OFFSET :offset",
+		    nativeQuery = true)
+	List<KeyAlias> findExpiringKeys(@Param("threshold") LocalDateTime threshold, @Param("now") LocalDateTime now,
+									@Param("pageSize") int pageSize, @Param("offset") int offset);
 
 }
