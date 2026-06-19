@@ -42,7 +42,7 @@ public class KeyExpiryNotificationJob {
     @Value("${mosip.keymgr.expiry-notification.email.notification.url}")
     private String emailNotificationUrl;
 
-    @Value("${mosip.keymgr.expiry-notification.email.subject:CRITICAL: Key Manager Keys Expiring Soon - Immediate Action Required}")
+    @Value("${mosip.keymgr.expiry-notification.email.subject:CRITICAL: Key Manager Keys Expiring Soon In PRE-PRODUCTION Environment - Immediate Action Required}")
     private String emailSubject;
 
 //    @Value("${mosip.keymgr.expiry-notification.email.template}")
