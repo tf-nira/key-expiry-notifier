@@ -19,6 +19,7 @@ on:
       - 1.*
       - develop
       - MOSIP*
+      - tf_nira_prod
 
 jobs:
   build-maven-key-expiry-notifier:
