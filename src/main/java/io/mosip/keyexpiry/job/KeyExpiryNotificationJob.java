@@ -206,15 +206,6 @@ public class KeyExpiryNotificationJob {
                 + "<tbody>" + rows + "</tbody>"
                 + "</table>"
 
-                // Action box
-                + "<div style='margin-top:24px;padding:16px 20px;background:#eaf4fb;border-left:4px solid #2980b9;border-radius:4px;'>"
-                + "<strong style='color:#1a5276;'>📌 Recommended Actions:</strong>"
-                + "<ul style='margin:8px 0 0 0;padding-left:20px;color:#333;font-size:13px;line-height:1.8;'>"
-                + "<li>Log in to the MOSIP Admin Portal and renew expiring keys immediately</li>"
-                + "<li>Prioritize keys marked <strong>EXPIRED</strong> — services may already be affected</li>"
-                + "</ul>"
-                + "</div>"
-
                 + "<p style='margin-top:24px;color:#333;font-size:14px;'>Regards,<br/>"
                 + "<strong>Key Manager Monitoring System</strong><br/>"
                 + "<span style='color:#888;font-size:12px;'>NIRA — National Identification and Registration Authority</span></p>"
